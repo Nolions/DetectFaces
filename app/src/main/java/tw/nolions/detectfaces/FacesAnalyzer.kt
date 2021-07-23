@@ -1,7 +1,11 @@
 package tw.nolions.detectfaces
 
+import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.PointF
 import android.util.Log
+import android.view.TextureView
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageProxy
 import com.google.mlkit.vision.common.InputImage
@@ -13,7 +17,13 @@ class FacesAnalyzer() : ImageAnalysis.Analyzer {
 
     private lateinit var faceDetector: FaceDetector
     private lateinit var faceImage: InputImage
-    private val canvas = Canvas()
+    private var canvas:Canvas? = null
+    private var widthScaleFactor = 1.0f
+    private var heightScaleFactor = 1.0f
+    private val dotPaint: Paint? = null
+    private var linePaint:Paint? = null
+    private val bitmap: Bitmap? = null
+    private val tv: TextureView? = null
 
     override fun analyze(imageProxy: ImageProxy) {
         val mediaImage = imageProxy.image ?: return
@@ -21,7 +31,15 @@ class FacesAnalyzer() : ImageAnalysis.Analyzer {
         faceImage = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
 
         initDetector()
+        initDrawingUtils()
         detectFaces(imageProxy)
+    }
+
+    private fun initDrawingUtils() {
+        canvas = Canvas()
+        linePaint = Paint()
+//        widthScaleFactor = canvas.width / (fbImage.getBitmap().getWidth() * 1.0f)
+//        heightScaleFactor = canvas.height / (fbImage.getBitmap().getHeight() * 1.0f)
     }
 
     private fun initDetector() {
@@ -84,7 +102,7 @@ class FacesAnalyzer() : ImageAnalysis.Analyzer {
                         item.allContours.forEach { face ->
                             face.points
                             face?.let {
-                                it.points
+                                drawContours(it.points)
                             }
                         }
                     }
@@ -100,7 +118,39 @@ class FacesAnalyzer() : ImageAnalysis.Analyzer {
     }
 
 
-    private fun drawContours(points: List<FirebaseVisionPoint> ) {
+    private fun drawContours(points: List<PointF>) {
 
+        for ((counter, point) in points.withIndex()) {
+            if (counter != points.size - 1) {
+                canvas.drawLine(
+                    translateX(point.x),
+                    translateY(point.y),
+                    translateX(points[counter + 1].x),
+                    translateY(points[counter + 1].y),
+                    linePaint
+                )
+            } else {
+                canvas.drawLine(
+                    translateX(point.getX()),
+                    translateY(point.getY()),
+                    translateX(points[0].getX()),
+                    translateY(points[0].getY()),
+                    linePaint
+                )
+
+            }
+            counter++
+            canvas.drawCircle(translateX(point.getX()), translateY(point.getY()), 6f, dotPaint)
+            canvas.drawCircle(translateX(point.getX(), translateY(point.getY()), 6, dotPaint)
+        }
+    }
+
+    private fun translateX(x: Float): Float {
+        val scaledX: Float = x * widthScaleFactor
+        return canvas.width - scaledX
+    }
+
+    private fun translateY(y: Float): Float {
+        return y * heightScaleFactor
     }
 }
